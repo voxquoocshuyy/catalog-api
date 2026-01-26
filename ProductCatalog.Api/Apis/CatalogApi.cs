@@ -4,6 +4,14 @@ public static class CatalogApi
 {
     private static readonly string InvalidDisplayType = $"Invalid display type. Valid types are: {string.Join(", ", DimensionDisplayTypes.All)}";
     private const int defaultPageSize = 10;
+    private const int maxPageSize = 100;
+
+    private static (int offset, int limit) ValidatePagination(int? offset, int? limit)
+    {
+        var validatedOffset = Math.Max(offset ?? 0, 0);
+        var validatedLimit = Math.Min(Math.Max(limit ?? defaultPageSize, 1), maxPageSize);
+        return (validatedOffset, validatedLimit);
+    }
 
     public static IEndpointRouteBuilder MapCatalogApi(this IEndpointRouteBuilder builder)
     {
@@ -33,9 +41,10 @@ public static class CatalogApi
         dimensionApiGroup.MapPost("/{id}/values", AddDimentionValues);
         dimensionApiGroup.MapGet("/", async ([AsParameters] ApiServices services, [FromQuery] int? offset = 0, [FromQuery] int? limit = defaultPageSize) =>
         {
+            var (validatedOffset, validatedLimit) = ValidatePagination(offset, limit);
             return await services.DbContext.Dimensions
             .Include(d => d.Values)
-            .Skip(offset!.Value).Take(limit!.Value)
+            .Skip(validatedOffset).Take(validatedLimit)
             .ToListAsync();
         });
 
@@ -47,9 +56,10 @@ public static class CatalogApi
         productApiGroup.MapPut("/{productId:guid}", UpdateProduct);
         productApiGroup.MapGet("/", async ([AsParameters] ApiServices services, [FromQuery] int? offset = 0, [FromQuery] int? limit = defaultPageSize) =>
         {
+            var (validatedOffset, validatedLimit) = ValidatePagination(offset, limit);
             return await services.DbContext.Products
             // .Where(p => !p.IsDeleted) // in this in internal API, we return all products except deleted ones
-            .Skip(offset!.Value).Take(limit!.Value).ToListAsync();
+            .Skip(validatedOffset).Take(validatedLimit).ToListAsync();
         });
         productApiGroup.MapGet("/{productId:guid}", async ([AsParameters] ApiServices services, Guid productId) =>
         {
@@ -122,8 +132,9 @@ public static class CatalogApi
 
     private static async Task<Results<Ok<Brand[]>, NotFound>> FindBrands([AsParameters] ApiServices services, [FromQuery] int? offset = 0, [FromQuery] int? limit = defaultPageSize)
     {
+        var (validatedOffset, validatedLimit) = ValidatePagination(offset, limit);
         var brands = await services.DbContext.Brands
-            .Skip(offset!.Value).Take(limit!.Value)
+            .Skip(validatedOffset).Take(validatedLimit)
             .ToArrayAsync();
 
         return TypedResults.Ok(brands);

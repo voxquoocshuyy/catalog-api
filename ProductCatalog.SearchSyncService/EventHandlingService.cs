@@ -77,17 +77,20 @@ public class EventHandlingService(IConsumer<string, MessageEnvelop> consumer,
 
                 if (handler is null)
                 {
-                    logger.LogWarning("No handler found for event type: {t}", message.MessageTypeName);
+                    logger.LogWarning("No handler found for event type: {t}. Message will be skipped.", message.MessageTypeName);
                     return;
                 }
 
                 try 
                 {
                     await handler.HandleAsync(evt, cancellationToken);
+                    logger.LogDebug("Successfully handled event of type: {t}", message.MessageTypeName);
                 }
                 catch (Exception ex)
                 {
-                    logger.LogError(ex, "Error handling event of type: {t}", message.MessageTypeName);
+                    logger.LogError(ex, "Error handling event of type: {t}. This event will be skipped and may need manual intervention.", message.MessageTypeName);
+                    // TODO: Implement dead-letter queue or retry mechanism
+                    // For now, we log and continue to prevent blocking the consumer
                 }
             }
             else
@@ -97,7 +100,7 @@ public class EventHandlingService(IConsumer<string, MessageEnvelop> consumer,
         }
         else
         {
-            logger.LogWarning("Event type not found: {t}", message.MessageTypeName);
+            logger.LogWarning("Event type not found: {t}. Message will be skipped.", message.MessageTypeName);
         }
     }
 }

@@ -36,7 +36,7 @@ internal class TransactionalOutboxLogTailingService : BackgroundService
         {
             try
             {
-                var conn = new NpgsqlConnection(options.ConnectionString);
+                using var conn = new NpgsqlConnection(options.ConnectionString);
 
                 await conn.OpenAsync(stoppingToken);
                 conn.Notification += async (c, e) => {
@@ -68,14 +68,18 @@ internal class TransactionalOutboxLogTailingService : BackgroundService
 
                 while (!stoppingToken.IsCancellationRequested)
                 {
-                    conn.Wait(); 
+                    await conn.WaitAsync(stoppingToken); 
                 }
-
-                conn.Close();
+            }
+            catch (OperationCanceledException)
+            {
+                // Expected when the service is stopping
+                logger.LogInformation("TransactionOutbox log tailing service is stopping");
             }
             catch (Exception ex)
             {
-                logger.LogError(ex, "Error processing");
+                logger.LogError(ex, "Error processing outbox notifications. Retrying in 5 seconds...");
+                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
             }
         }
     }

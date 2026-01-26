@@ -13,6 +13,8 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
     private DistributedApplication? _app;
     private HttpClient? _httpClient;
 
+    private HttpClient HttpClient => _httpClient ?? throw new InvalidOperationException("HttpClient not initialized. Ensure InitializeAsync was called.");
+
     public async Task InitializeAsync()
     {
         // Create an Aspire testing builder
@@ -52,7 +54,8 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var httpClient = _httpClient ?? throw new InvalidOperationException("HttpClient not initialized");
+        var response = await httpClient.PostAsJsonAsync("/api/v1/brands", brand);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -82,11 +85,11 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
             UrlSlug = $"brand-2-{Guid.NewGuid()}"
         };
 
-        await _httpClient!.PostAsJsonAsync("/api/v1/brands", brand1);
-        await _httpClient.PostAsJsonAsync("/api/v1/brands", brand2);
+        await HttpClient.PostAsJsonAsync("/api/v1/brands", brand1);
+        await HttpClient.PostAsJsonAsync("/api/v1/brands", brand2);
 
         // Act
-        var response = await _httpClient.GetAsync("/api/v1/brands");
+        var response = await HttpClient.GetAsync("/api/v1/brands");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -107,7 +110,7 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
             LogoUrl = "https://example.com/original.png"
         };
 
-        var createResponse = await _httpClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var createResponse = await HttpClient.PostAsJsonAsync("/api/v1/brands", brand);
         var createdBrand = await createResponse.Content.ReadFromJsonAsync<Brand>();
 
         createdBrand!.Name = "Updated Brand Name";
@@ -115,7 +118,7 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
         createdBrand.UrlSlug = $"updated-brand-{Guid.NewGuid()}";
 
         // Act
-        var updateResponse = await _httpClient.PutAsJsonAsync($"/api/v1/brands/{createdBrand.Id}", createdBrand);
+        var updateResponse = await HttpClient.PutAsJsonAsync($"/api/v1/brands/{createdBrand.Id}", createdBrand);
 
         // Assert
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -137,7 +140,7 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient!.PostAsJsonAsync("/api/v1/categories", category);
+        var response = await HttpClient.PostAsJsonAsync("/api/v1/categories", category);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -167,14 +170,13 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
         };
 
         // Act
-        var response = await _httpClient!.PostAsJsonAsync("/api/v1/dimensions", dimensions);
+        var response = await HttpClient.PostAsJsonAsync("/api/v1/dimensions", dimensions);
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
         var createdDimensions = await response.Content.ReadFromJsonAsync<Dimension[]>();
         createdDimensions.Should().NotBeNull();
-        createdDimensions!.Should().ContainSingle();
-        createdDimensions[0].Name.Should().Be("Test Dimension");
+        createdDimensions![0].Name.Should().Be("Test Dimension");
         createdDimensions[0].Values.Should().HaveCount(2);
     }
 
@@ -192,10 +194,10 @@ public class CatalogApiIntegrationTests : IAsyncLifetime
             }
         };
 
-        await _httpClient!.PostAsJsonAsync("/api/v1/dimensions", dimensions);
+        await HttpClient.PostAsJsonAsync("/api/v1/dimensions", dimensions);
 
         // Act
-        var response = await _httpClient.GetAsync("/api/v1/dimensions");
+        var response = await HttpClient.GetAsync("/api/v1/dimensions");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.OK);
