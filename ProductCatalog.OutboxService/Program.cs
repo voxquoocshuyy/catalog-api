@@ -15,10 +15,27 @@ builder.AddServiceDefaults();
 builder.AddKafkaProducer("kafka");
 builder.AddKafkaEventPublisher("catalog-events");
 
-builder.Services.AddSingleton(s => new TransactionalOutboxLogTailingServiceOptions()
+builder.Services.AddSingleton(s =>
 {
-    ConnectionString = builder.Configuration.GetConnectionString("catalogdb") ?? throw new InvalidOperationException("Connection string 'catalogdb' not found."),
-    PayloadTypeResolver = (type) => (eventAssembly ?? Assembly.GetExecutingAssembly()).GetType(type) ?? throw new Exception($"Could not get type {type}"),
+    var connectionString = builder.Configuration.GetConnectionString("catalogdb");
+    if (string.IsNullOrWhiteSpace(connectionString))
+    {
+        throw new InvalidOperationException("Connection string 'catalogdb' not found or is empty.");
+    }
+
+    return new TransactionalOutboxLogTailingServiceOptions()
+    {
+        ConnectionString = connectionString,
+        PayloadTypeResolver = (type) =>
+        {
+            var resolvedType = (eventAssembly ?? Assembly.GetExecutingAssembly()).GetType(type);
+            if (resolvedType == null)
+            {
+                throw new InvalidOperationException($"Could not resolve event type: {type}. Ensure the type exists in the ProductCatalog.Events assembly.");
+            }
+            return resolvedType;
+        },
+    };
 });
 
 builder.AddNpgsqlDbContext<ProductCatalogDbContext>("catalogdb", configureDbContextOptions: dbContextOptionsBuilder =>

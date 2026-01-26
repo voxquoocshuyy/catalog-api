@@ -16,6 +16,10 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
     private HttpClient? _searchApiClient;
     private ElasticsearchClient? _elasticsearchClient;
 
+    private HttpClient ApiClient => _apiClient ?? throw new InvalidOperationException("ApiClient not initialized. Ensure InitializeAsync was called.");
+    private HttpClient SearchApiClient => _searchApiClient ?? throw new InvalidOperationException("SearchApiClient not initialized. Ensure InitializeAsync was called.");
+    private ElasticsearchClient ElasticsearchClient => _elasticsearchClient ?? throw new InvalidOperationException("ElasticsearchClient not initialized. Ensure InitializeAsync was called.");
+
     public async Task InitializeAsync()
     {
         // Create an Aspire testing builder
@@ -64,7 +68,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-brand-{Guid.NewGuid()}"
         };
 
-        var brandResponse = await _apiClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var brandResponse = await ApiClient.PostAsJsonAsync("/api/v1/brands", brand);
         var createdBrand = await brandResponse.Content.ReadFromJsonAsync<Brand>();
 
         var category = new Category
@@ -74,7 +78,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-category-{Guid.NewGuid()}"
         };
 
-        var categoryResponse = await _apiClient.PostAsJsonAsync("/api/v1/categories", category);
+        var categoryResponse = await ApiClient.PostAsJsonAsync("/api/v1/categories", category);
         var createdCategory = await categoryResponse.Content.ReadFromJsonAsync<Category>();
 
         var dimensionId = $"color_{Guid.NewGuid().ToString().Replace("-", "_")}";
@@ -93,7 +97,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             }
         };
 
-        await _apiClient.PostAsJsonAsync("/api/v1/dimensions", dimensions);
+        await ApiClient.PostAsJsonAsync("/api/v1/dimensions", dimensions);
 
         var productId = Guid.CreateVersion7();
         var product = new Product
@@ -133,7 +137,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
         };
 
         // Act
-        var createResponse = await _apiClient.PostAsJsonAsync("/api/v1/products", product);
+        var createResponse = await ApiClient.PostAsJsonAsync("/api/v1/products", product);
 
         // Assert API response
         createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -145,7 +149,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
         await Task.Delay(TimeSpan.FromSeconds(10));
 
         // Verify product is in Elasticsearch
-        var searchResponse = await _elasticsearchClient!.GetAsync<ProductIndexDocument>(productId.ToString());
+        var searchResponse = await ElasticsearchClient.GetAsync<ProductIndexDocument>(productId.ToString());
         
         if (searchResponse.IsValidResponse)
         {
@@ -176,7 +180,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-brand-{Guid.NewGuid()}"
         };
 
-        var brandResponse = await _apiClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var brandResponse = await ApiClient.PostAsJsonAsync("/api/v1/brands", brand);
         var createdBrand = await brandResponse.Content.ReadFromJsonAsync<Brand>();
 
         var category = new Category
@@ -185,7 +189,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-category-{Guid.NewGuid()}"
         };
 
-        var categoryResponse = await _apiClient.PostAsJsonAsync("/api/v1/categories", category);
+        var categoryResponse = await ApiClient.PostAsJsonAsync("/api/v1/categories", category);
         var createdCategory = await categoryResponse.Content.ReadFromJsonAsync<Category>();
 
         var productId = Guid.CreateVersion7();
@@ -228,7 +232,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
         };
 
         // Act
-        var createResponse = await _apiClient.PostAsJsonAsync("/api/v1/products", product);
+        var createResponse = await ApiClient.PostAsJsonAsync("/api/v1/products", product);
 
         // Assert
         createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -239,7 +243,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
         await Task.Delay(TimeSpan.FromSeconds(10));
 
         // Verify minimum price is correctly calculated in Elasticsearch
-        var searchResponse = await _elasticsearchClient!.GetAsync<ProductIndexDocument>(productId.ToString());
+        var searchResponse = await ElasticsearchClient.GetAsync<ProductIndexDocument>(productId.ToString());
         
         if (searchResponse.IsValidResponse)
         {
@@ -260,7 +264,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-brand-{Guid.NewGuid()}"
         };
 
-        var brandResponse = await _apiClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var brandResponse = await ApiClient.PostAsJsonAsync("/api/v1/brands", brand);
         var createdBrand = await brandResponse.Content.ReadFromJsonAsync<Brand>();
 
         var category = new Category
@@ -269,7 +273,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"test-category-{Guid.NewGuid()}"
         };
 
-        var categoryResponse = await _apiClient.PostAsJsonAsync("/api/v1/categories", category);
+        var categoryResponse = await ApiClient.PostAsJsonAsync("/api/v1/categories", category);
         var createdCategory = await categoryResponse.Content.ReadFromJsonAsync<Category>();
 
         var productId = Guid.CreateVersion7();
@@ -284,7 +288,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             IsActive = false
         };
 
-        var createResponse = await _apiClient.PostAsJsonAsync("/api/v1/products", product);
+        var createResponse = await ApiClient.PostAsJsonAsync("/api/v1/products", product);
         createResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Act
@@ -298,13 +302,13 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             IsActive = true
         };
 
-        var updateResponse = await _apiClient.PutAsJsonAsync($"/api/v1/products/{productId}", updateProduct);
+        var updateResponse = await ApiClient.PutAsJsonAsync($"/api/v1/products/{productId}", updateProduct);
 
         // Assert
         updateResponse.StatusCode.Should().Be(HttpStatusCode.OK);
 
         // Verify the update
-        var getResponse = await _apiClient.GetAsync($"/api/v1/products/{productId}");
+        var getResponse = await ApiClient.GetAsync($"/api/v1/products/{productId}");
         var updatedProduct = await getResponse.Content.ReadFromJsonAsync<Product>();
         updatedProduct.Should().NotBeNull();
         updatedProduct!.Name.Should().Be("Updated Product Name");
@@ -322,7 +326,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"pagination-brand-{Guid.NewGuid()}"
         };
 
-        var brandResponse = await _apiClient!.PostAsJsonAsync("/api/v1/brands", brand);
+        var brandResponse = await ApiClient.PostAsJsonAsync("/api/v1/brands", brand);
         var createdBrand = await brandResponse.Content.ReadFromJsonAsync<Brand>();
 
         var category = new Category
@@ -331,7 +335,7 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
             UrlSlug = $"pagination-category-{Guid.NewGuid()}"
         };
 
-        var categoryResponse = await _apiClient.PostAsJsonAsync("/api/v1/categories", category);
+        var categoryResponse = await ApiClient.PostAsJsonAsync("/api/v1/categories", category);
         var createdCategory = await categoryResponse.Content.ReadFromJsonAsync<Category>();
 
         // Create 5 products
@@ -348,12 +352,12 @@ public class ProductApiWithElasticsearchTests : IAsyncLifetime
                 IsActive = true
             };
 
-            await _apiClient.PostAsJsonAsync("/api/v1/products", product);
+            await ApiClient.PostAsJsonAsync("/api/v1/products", product);
         }
 
         // Act
-        var firstPageResponse = await _apiClient.GetAsync("/api/v1/products?offset=0&limit=3");
-        var secondPageResponse = await _apiClient.GetAsync("/api/v1/products?offset=3&limit=3");
+        var firstPageResponse = await ApiClient.GetAsync("/api/v1/products?offset=0&limit=3");
+        var secondPageResponse = await ApiClient.GetAsync("/api/v1/products?offset=3&limit=3");
 
         // Assert
         firstPageResponse.StatusCode.Should().Be(HttpStatusCode.OK);
