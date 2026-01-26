@@ -144,17 +144,27 @@ public static class CatalogApi
     {
         if (brand == null)
         {
-            return TypedResults.BadRequest();
+            return TypedResults.BadRequest("Brand object is required.");
         }
 
-        if (string.IsNullOrEmpty(brand.Name))
+        if (string.IsNullOrWhiteSpace(brand.Name))
         {
-            return TypedResults.BadRequest("Category Name is required.");
+            return TypedResults.BadRequest("Brand Name is required and cannot be empty.");
         }
 
-        if (string.IsNullOrEmpty(brand.UrlSlug))
+        if (string.IsNullOrWhiteSpace(brand.UrlSlug))
         {
-            return TypedResults.BadRequest("Category UrlSlug is required.");
+            return TypedResults.BadRequest("Brand UrlSlug is required and cannot be empty.");
+        }
+
+        if (brand.Name.Length > 200)
+        {
+            return TypedResults.BadRequest("Brand Name cannot exceed 200 characters.");
+        }
+
+        if (brand.UrlSlug.Length > 200)
+        {
+            return TypedResults.BadRequest("Brand UrlSlug cannot exceed 200 characters.");
         }
 
         if (brand.Id == Guid.Empty)

@@ -5,8 +5,26 @@ public static class EventExtensions
 {
     public async static Task<ProductCreatedEvent> ToProductCreatedEvent(this Product product, ApiServices services)
     {
-        var brand = await services.DbContext.Brands.Where(b => b.Id == product.BrandId).SingleOrDefaultAsync(services.CancellationToken) ?? throw new Exception("Brand not found");
-        var category = await services.DbContext.Categories.Where(c => c.Id == product.CategoryId).SingleOrDefaultAsync(services.CancellationToken) ?? throw new Exception("Category not found");
+        ArgumentNullException.ThrowIfNull(product);
+        ArgumentNullException.ThrowIfNull(services);
+
+        var brand = await services.DbContext.Brands
+            .Where(b => b.Id == product.BrandId)
+            .SingleOrDefaultAsync(services.CancellationToken);
+        
+        if (brand == null)
+        {
+            throw new InvalidOperationException($"Brand with ID {product.BrandId} not found");
+        }
+
+        var category = await services.DbContext.Categories
+            .Where(c => c.Id == product.CategoryId)
+            .SingleOrDefaultAsync(services.CancellationToken);
+        
+        if (category == null)
+        {
+            throw new InvalidOperationException($"Category with ID {product.CategoryId} not found");
+        }
 
         var dimensionIds = product.Dimensions.Select(d => d.DimensionId).ToList();
         var dimensions = await services.DbContext.Dimensions.Where(d => dimensionIds.Contains(d.Id))
