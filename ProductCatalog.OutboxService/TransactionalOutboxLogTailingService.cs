@@ -74,7 +74,7 @@ internal class TransactionalOutboxLogTailingService : BackgroundService
             catch (OperationCanceledException)
             {
                 // Expected when the service is stopping
-                logger.LogInformation("TransactionOutbox log tailing service is stopping");
+                logger.LogInformation("TransactionalOutbox log tailing service is stopping");
             }
             catch (Exception ex)
             {

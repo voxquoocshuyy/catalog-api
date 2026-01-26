@@ -95,7 +95,9 @@ public static class EventExtensions
                     ImageId = i.Id,
                     AltText = i.AltText,
                     SortOrder = i.SortOrder,
-                    ImageUrl = !string.IsNullOrEmpty(i.Image?.BaseUrl) ? new Uri(new Uri(i.Image.BaseUrl), i.Image.FileName).ToString() : i.Image?.FileName ?? string.Empty
+                    ImageUrl = i.Image != null && !string.IsNullOrEmpty(i.Image.BaseUrl) 
+                        ? new Uri(new Uri(i.Image.BaseUrl), i.Image.FileName).ToString() 
+                        : i.Image?.FileName ?? string.Empty
                 }).ToList() ?? []
             },
         };
